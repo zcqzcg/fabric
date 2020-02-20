@@ -153,3 +153,10 @@ func (kd *aesPrivateKeyKeyDeriver) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts
 		return nil, fmt.Errorf("Unsupported 'KeyDerivOpts' provided [%v]", opts)
 	}
 }
+
+type rsaPrivateKeyKeyDeriver struct {
+}
+
+func (kd *rsaPrivateKeyKeyDeriver) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts) (bccsp.Key, error) {
+	return nil, errors.New("the rsa key deriv not supported yet")
+}

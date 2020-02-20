@@ -17,9 +17,9 @@ limitations under the License.
 package sw
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"fmt"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -29,7 +29,7 @@ type rsaSigner struct{}
 
 func (s *rsaSigner) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]byte, error) {
 	if opts == nil {
-		return nil, errors.New("Invalid options. Must be different from nil.")
+		opts = crypto.SHA256
 	}
 
 	return k.(*rsaPrivateKey).privKey.Sign(rand.Reader, digest, opts)
@@ -38,35 +38,39 @@ func (s *rsaSigner) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]b
 type rsaPrivateKeyVerifier struct{}
 
 func (v *rsaPrivateKeyVerifier) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.SignerOpts) (bool, error) {
-	if opts == nil {
-		return false, errors.New("Invalid options. It must not be nil.")
-	}
-	switch opts.(type) {
-	case *rsa.PSSOptions:
-		err := rsa.VerifyPSS(&(k.(*rsaPrivateKey).privKey.PublicKey),
-			(opts.(*rsa.PSSOptions)).Hash,
-			digest, signature, opts.(*rsa.PSSOptions))
+	if opts != nil {
+		//return false, errors.New("Invalid options. It must not be nil.")
+		switch opts.(type) {
+		case *rsa.PSSOptions:
+			err := rsa.VerifyPSS(&(k.(*rsaPrivateKey).privKey.PublicKey),
+				(opts.(*rsa.PSSOptions)).Hash,
+				digest, signature, opts.(*rsa.PSSOptions))
 
-		return err == nil, err
-	default:
-		return false, fmt.Errorf("Opts type not recognized [%s]", opts)
+			return err == nil, err
+		default:
+			return false, fmt.Errorf("Opts type not recognized [%s] with RSAPrivateKey", opts)
+		}
 	}
+	err := rsa.VerifyPKCS1v15(&k.(*rsaPrivateKey).privKey.PublicKey, crypto.SHA256, digest, signature)
+	return err == nil, err
 }
 
 type rsaPublicKeyKeyVerifier struct{}
 
 func (v *rsaPublicKeyKeyVerifier) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.SignerOpts) (bool, error) {
-	if opts == nil {
-		return false, errors.New("Invalid options. It must not be nil.")
-	}
-	switch opts.(type) {
-	case *rsa.PSSOptions:
-		err := rsa.VerifyPSS(k.(*rsaPublicKey).pubKey,
-			(opts.(*rsa.PSSOptions)).Hash,
-			digest, signature, opts.(*rsa.PSSOptions))
+	if opts != nil {
+		//return false, errors.New("Invalid options. It must not be nil.")
+		switch opts.(type) {
+		case *rsa.PSSOptions:
+			err := rsa.VerifyPSS(k.(*rsaPublicKey).pubKey,
+				(opts.(*rsa.PSSOptions)).Hash,
+				digest, signature, opts.(*rsa.PSSOptions))
 
-		return err == nil, err
-	default:
-		return false, fmt.Errorf("Opts type not recognized [%s]", opts)
+			return err == nil, err
+		default:
+			return false, fmt.Errorf("Opts type not recognized [%s] with RSAPublicKey", opts)
+		}
 	}
+	err := rsa.VerifyPKCS1v15((k.(*rsaPublicKey)).pubKey, crypto.SHA256, digest, signature)
+	return err == nil, err
 }
