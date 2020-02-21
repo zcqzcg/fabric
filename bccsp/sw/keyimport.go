@@ -134,6 +134,31 @@ func (*rsaGoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccs
 	return &rsaPublicKey{lowLevelKey}, nil
 }
 
+type rsaPrivateKeyImportOptsKeyImporter struct{}
+
+func (*rsaPrivateKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (bccsp.Key, error) {
+	der, ok := raw.([]byte)
+	if !ok {
+		return nil, errors.New("[ECDSADERPrivateKeyImportOpts] Invalid raw material. Expected byte array.")
+	}
+
+	if len(der) == 0 {
+		return nil, errors.New("[ECDSADERPrivateKeyImportOpts] Invalid raw. It must not be nil.")
+	}
+
+	lowLevelKey, err := utils.DERToPrivateKey(der)
+	if err != nil {
+		return nil, fmt.Errorf("Failed converting PKIX to ECDSA public key [%s]", err)
+	}
+
+	rsaSK, ok := lowLevelKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("Failed casting to ECDSA private key. Invalid raw material.")
+	}
+
+	return &rsaPrivateKey{rsaSK}, nil
+}
+
 type x509PublicKeyImportOptsKeyImporter struct {
 	bccsp *CSP
 }
