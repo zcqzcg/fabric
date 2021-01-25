@@ -214,7 +214,7 @@ func DERToPrivateKey(der []byte) (key interface{}, err error) {
 		return
 	}
 
-	if key, err := x509GM.ParsePKCS8UnecryptedPrivateKey(der); err == nil {
+	if key, err = x509GM.ParsePKCS8UnecryptedPrivateKey(der); err == nil {
 		return
 	}
 	
