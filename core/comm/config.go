@@ -8,9 +8,10 @@ package comm
 
 import (
 	"crypto/tls"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"time"
 
+	"github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/common/metrics"
 	"google.golang.org/grpc"
@@ -32,6 +33,8 @@ var (
 	}
 	// strong TLS cipher suites
 	DefaultTLSCipherSuites = []uint16{
+		gmtls.GMTLS_SM2_WITH_SM4_SM3,
+		gmtls.GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,

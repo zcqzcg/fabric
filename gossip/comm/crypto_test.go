@@ -8,18 +8,18 @@ package comm
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"github.com/hyperledger/fabric/gossip/util"
 	proto "github.com/hyperledger/fabric/protos/gossip"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type gossipTestServer struct {
@@ -40,7 +40,7 @@ func createTestServer(t *testing.T, cert *tls.Certificate) (srv *gossipTestServe
 		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,
 	}
-	s := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConf)))
+	s := grpc.NewServer(grpc.Creds(gmcredentials.NewTLS(tlsConf)))
 	ll, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:0"))
 	assert.NoError(t, err, "%v", err)
 
@@ -79,7 +79,7 @@ func TestCertificateExtraction(t *testing.T) {
 
 	clientCert := GenerateCertificatesOrPanic()
 	clientCertHash := certHashFromRawCert(clientCert.Certificate[0])
-	ta := credentials.NewTLS(&tls.Config{
+	ta := gmcredentials.NewTLS(&tls.Config{
 		Certificates:       []tls.Certificate{clientCert},
 		InsecureSkipVerify: true,
 	})

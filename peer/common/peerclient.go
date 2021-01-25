@@ -8,11 +8,11 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"github.com/hyperledger/fabric/core/comm"
 	"github.com/hyperledger/fabric/core/config"
 	"github.com/hyperledger/fabric/peer/common/api"

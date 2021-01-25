@@ -8,13 +8,14 @@ package deliverclient
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/core/comm"
 	"github.com/hyperledger/fabric/core/deliverservice/blocksprovider"
@@ -23,7 +24,6 @@ import (
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func TestTLSBinding(t *testing.T) {
@@ -102,12 +102,12 @@ type mockClient struct {
 func createClient(t *testing.T, tlsCert tls.Certificate, caCert []byte) *mockClient {
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
-		RootCAs:      x509.NewCertPool(),
+		RootCAs:      x509GM.NewCertPool(),
 	}
 	tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	dialOpts := []grpc.DialOption{grpc.WithBlock(), grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))}
+	dialOpts := []grpc.DialOption{grpc.WithBlock(), grpc.WithTransportCredentials(gmcredentials.NewTLS(tlsConfig))}
 	conn, err := grpc.DialContext(ctx, "localhost:9435", dialOpts...)
 	assert.NoError(t, err)
 	cl := orderer.NewAtomicBroadcastClient(conn)

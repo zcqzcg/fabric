@@ -13,6 +13,8 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
+	"github.com/hyperledger/fabric/bccsp/gm"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/bccsp"
@@ -86,6 +88,7 @@ type bccspmsp struct {
 
 	// verification options for MSP members
 	opts *x509.VerifyOptions
+	gmOpts *x509GM.VerifyOptions
 
 	// list of certificate revocation lists
 	CRL []*pkix.CertificateList
@@ -142,6 +145,27 @@ func newBccspMsp(version MSPVersion) (MSP, error) {
 	return theMsp, nil
 }
 
+func (msp *bccspmsp) getPemsFromOnePem(idBytes []byte) ([][]byte, error) {
+	if idBytes == nil {
+		return nil, errors.New("getCertFromPem error: nil idBytes")
+	}
+
+	var blocks [][]byte
+
+	for len(idBytes) > 0 {
+		var block *pem.Block
+		block, idBytes = pem.Decode(idBytes)
+		if block == nil {
+			break
+		}
+
+		blocks = append(blocks, pem.EncodeToMemory(block))
+	}
+	// Decode the pem bytes
+
+	return blocks, nil
+}
+
 func (msp *bccspmsp) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
 	if idBytes == nil {
 		return nil, errors.New("getCertFromPem error: nil idBytes")
@@ -154,10 +178,19 @@ func (msp *bccspmsp) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
 	}
 
 	// get a cert
+	var err error
 	var cert *x509.Certificate
-	cert, err := x509.ParseCertificate(pemCert.Bytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "getCertFromPem error: failed to parse x509 cert")
+	if bccsp.IsGMCryptoSuite(msp.bccsp) {
+		sm2Cert, err := x509GM.ParseCertificate(pemCert.Bytes)
+		if err != nil {
+			return nil, errors.Wrap(err, "getCertFromPem error: failed to parse gm x509 cert")
+		}
+		cert = gm.ParseSm2Certificate2X509(sm2Cert)
+	} else {
+		cert, err = x509.ParseCertificate(pemCert.Bytes)
+		if err != nil {
+			return nil, errors.Wrap(err, "getCertFromPem error: failed to parse x509 cert")
+		}
 	}
 
 	return cert, nil
@@ -172,6 +205,9 @@ func (msp *bccspmsp) getIdentityFromConf(idBytes []byte) (Identity, bccsp.Key, e
 
 	// get the public key in the right format
 	certPubK, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	mspId, err := newIdentity(cert, certPubK, msp)
 	if err != nil {
@@ -198,7 +234,7 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 	if err != nil {
 		mspLogger.Debugf("Could not find SKI [%s], trying KeyMaterial field: %+v\n", hex.EncodeToString(pubKey.SKI()), err)
 		if sidInfo.PrivateSigner == nil || sidInfo.PrivateSigner.KeyMaterial == nil {
-			return nil, errors.New("KeyMaterial not found in SigningIdentityInfo")
+			return nil, errors.Wrap(err, "KeyMaterial not found in SigningIdentityInfo")
 		}
 
 		pemKey, _ := pem.Decode(sidInfo.PrivateSigner.KeyMaterial)
@@ -383,9 +419,21 @@ func (msp *bccspmsp) deserializeIdentityInternal(serializedIdentity []byte) (Ide
 	if bl == nil {
 		return nil, errors.New("could not decode the PEM structure")
 	}
-	cert, err := x509.ParseCertificate(bl.Bytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "parseCertificate failed")
+
+	var err error
+	var cert *x509.Certificate
+
+	if bccsp.IsGMCryptoSuite(msp.bccsp) {
+		sm2Cert, err := x509GM.ParseCertificate(bl.Bytes)
+		if err != nil {
+			return nil, errors.Wrap(err, "parseGMCertificate failed")
+		}
+		cert = gm.ParseSm2Certificate2X509(sm2Cert)
+	} else {
+		cert, err = x509.ParseCertificate(bl.Bytes)
+		if err != nil {
+			return nil, errors.Wrap(err, "parseCertificate failed")
+		}
 	}
 
 	// Now we have the certificate; make sure that its fields
@@ -696,6 +744,32 @@ func (msp *bccspmsp) getCertificationChainForBCCSPIdentity(id *identity) ([]*x50
 	return msp.getValidationChain(id.cert, false)
 }
 
+func (msp *bccspmsp) getGMUniqueValidationChain(cert *x509GM.Certificate, opts x509GM.VerifyOptions) ([]*x509.Certificate, error) {
+	// ask golang to validate the cert for us based on the options that we've built at setup time
+	if msp.opts == nil {
+		return nil, errors.New("the supplied identity has no verify options")
+	}
+	validationChains, err := cert.Verify(opts)
+	if err != nil {
+		return nil, errors.WithMessage(err, "the supplied gm identity is not valid")
+	}
+
+	// we only support a single validation chain;
+	// if there's more than one then there might
+	// be unclarity about who owns the identity
+	if len(validationChains) != 1 {
+		return nil, errors.Errorf("this MSP only supports a single validation chain, got %d", len(validationChains))
+	}
+
+	var chain []*x509.Certificate
+
+	for _, sm2Cert := range validationChains[0] {
+		chain = append(chain, gm.ParseSm2Certificate2X509(sm2Cert))
+	}
+
+	return chain, nil
+}
+
 func (msp *bccspmsp) getUniqueValidationChain(cert *x509.Certificate, opts x509.VerifyOptions) ([]*x509.Certificate, error) {
 	// ask golang to validate the cert for us based on the options that we've built at setup time
 	if msp.opts == nil {
@@ -717,7 +791,16 @@ func (msp *bccspmsp) getUniqueValidationChain(cert *x509.Certificate, opts x509.
 }
 
 func (msp *bccspmsp) getValidationChain(cert *x509.Certificate, isIntermediateChain bool) ([]*x509.Certificate, error) {
-	validationChain, err := msp.getUniqueValidationChain(cert, msp.getValidityOptsForCert(cert))
+	var err error
+	var validationChain []*x509.Certificate
+
+	if gm.IsX509SM2Certificate(cert) {
+		sm2Cert := gm.ParseX509Certificate2Sm2(cert)
+		validationChain, err = msp.getGMUniqueValidationChain(sm2Cert, msp.getValidityOptsForGMCert(sm2Cert))
+	} else {
+		validationChain, err = msp.getUniqueValidationChain(cert, msp.getValidityOptsForCert(cert))
+	}
+
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed getting validation chain")
 	}
@@ -796,6 +879,28 @@ func (msp *bccspmsp) sanitizeCert(cert *x509.Certificate) (*x509.Certificate, er
 		if err != nil {
 			return nil, err
 		}
+	} else if isSM2WithSM3SignedCert(cert) {
+		var parentCert *x509GM.Certificate
+		sm2Cert := gm.ParseX509Certificate2Sm2(cert)
+		chain, err := msp.getGMUniqueValidationChain(sm2Cert, msp.getValidityOptsForGMCert(sm2Cert))
+		if err != nil {
+			return nil, err
+		}
+
+		// at this point, cert might be a root CA certificate
+		// or an intermediate CA certificate
+		if cert.IsCA && len(chain) == 1 {
+			// cert is a root CA certificate
+			parentCert = sm2Cert
+		} else {
+			parentCert = gm.ParseX509Certificate2Sm2(chain[1])
+		}
+
+		// Sanitize
+		cert, err = sanitizeSM2WithSM3SignedCert(sm2Cert, parentCert)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return cert, nil
 }
@@ -820,12 +925,19 @@ func (msp *bccspmsp) IsWellFormed(identity *m.SerializedIdentity) error {
 	if bl.Type != "CERTIFICATE" && bl.Type != "" {
 		return errors.Errorf("pem type is %s, should be 'CERTIFICATE' or missing", bl.Type)
 	}
-	cert, err := x509.ParseCertificate(bl.Bytes)
+
+	var cert *x509.Certificate
+	sm2Cert, err := x509GM.ParseCertificate(bl.Bytes)
 	if err != nil {
-		return err
+		cert, err = x509.ParseCertificate(bl.Bytes)
+		if err != nil {
+			return err
+		}
+	} else {
+		cert = gm.ParseSm2Certificate2X509(sm2Cert)
 	}
 
-	if !isECDSASignedCert(cert) {
+	if !isECDSASignedCert(cert) && !isSM2WithSM3SignedCert(cert) {
 		return nil
 	}
 

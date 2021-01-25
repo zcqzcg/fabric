@@ -9,6 +9,8 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
+	"github.com/hyperledger/fabric/bccsp/gm"
 	"os"
 	"path/filepath"
 
@@ -64,26 +66,54 @@ func GenerateLocalMSP(baseDir, name string, sans []string, signCA *ca.CA,
 	// get keystore path
 	keystore := filepath.Join(mspDir, "keystore")
 
-	// generate private key
-	priv, _, err := csp.GeneratePrivateKey(keystore)
-	if err != nil {
-		return err
-	}
+	var cert *x509.Certificate
 
-	// get public key
-	ecPubKey, err := csp.GetECPublicKey(priv)
-	if err != nil {
-		return err
-	}
-	// generate X509 certificate using signing CA
-	var ous []string
-	if nodeOUs {
-		ous = []string{nodeOUMap[nodeType]}
-	}
-	cert, err := signCA.SignCertificate(filepath.Join(mspDir, "signcerts"),
-		name, ous, nil, ecPubKey, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
-	if err != nil {
-		return err
+	if gm.IsX509SM2Certificate(signCA.SignCert) {
+		priv, _, err := csp.GenerateSM2PrivateKey(keystore)
+		if err != nil {
+			return err
+		}
+
+		// get public key
+		ecPubKey, err := csp.GetSM2PublicKey(priv)
+		if err != nil {
+			return err
+		}
+
+		// generate private key
+		// generate X509 certificate using signing CA
+		var ous []string
+		if nodeOUs {
+			ous = []string{nodeOUMap[nodeType]}
+		}
+		cert, err = signCA.SignGMCertificate(filepath.Join(mspDir, "signcerts"),
+			name, ous, nil, ecPubKey, x509GM.KeyUsageDigitalSignature, []x509GM.ExtKeyUsage{})
+		if err != nil {
+			return err
+		}
+	} else {
+		priv, _, err := csp.GeneratePrivateKey(keystore)
+		if err != nil {
+			return err
+		}
+
+		// get public key
+		ecPubKey, err := csp.GetECPublicKey(priv)
+		if err != nil {
+			return err
+		}
+
+		// generate private key
+		// generate X509 certificate using signing CA
+		var ous []string
+		if nodeOUs {
+			ous = []string{nodeOUMap[nodeType]}
+		}
+		cert, err = signCA.SignCertificate(filepath.Join(mspDir, "signcerts"),
+			name, ous, nil, ecPubKey, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
+		if err != nil {
+			return err
+		}
 	}
 
 	// write artifacts to MSP folders
@@ -123,20 +153,40 @@ func GenerateLocalMSP(baseDir, name string, sans []string, signCA *ca.CA,
 		Generate the TLS artifacts in the TLS folder
 	*/
 
-	// generate private key
-	tlsPrivKey, _, err := csp.GeneratePrivateKey(tlsDir)
-	if err != nil {
-		return err
+	var tlsPrivKey bccsp.Key
+
+	if gm.IsX509SM2Certificate(tlsCA.SignCert) {
+		// generate private key
+		tlsPrivKey, _, err = csp.GenerateSM2PrivateKey(tlsDir)
+		if err != nil {
+			return err
+		}
+		// get public key
+		tlsPubKey, err := csp.GetSM2PublicKey(tlsPrivKey)
+		if err != nil {
+			return err
+		}
+		// generate X509 certificate using TLS CA
+		_, err = tlsCA.SignGMCertificate(filepath.Join(tlsDir),
+			name, nil, sans, tlsPubKey, x509GM.KeyUsageDigitalSignature|x509GM.KeyUsageKeyEncipherment,
+			[]x509GM.ExtKeyUsage{x509GM.ExtKeyUsageServerAuth, x509GM.ExtKeyUsageClientAuth})
+	} else {
+		// generate private key
+		tlsPrivKey, _, err = csp.GeneratePrivateKey(tlsDir)
+		if err != nil {
+			return err
+		}
+		// get public key
+		tlsPubKey, err := csp.GetECPublicKey(tlsPrivKey)
+		if err != nil {
+			return err
+		}
+		// generate X509 certificate using TLS CA
+		_, err = tlsCA.SignCertificate(filepath.Join(tlsDir),
+			name, nil, sans, tlsPubKey, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
+			[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth})
 	}
-	// get public key
-	tlsPubKey, err := csp.GetECPublicKey(tlsPrivKey)
-	if err != nil {
-		return err
-	}
-	// generate X509 certificate using TLS CA
-	_, err = tlsCA.SignCertificate(filepath.Join(tlsDir),
-		name, nil, sans, tlsPubKey, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth})
+
 	if err != nil {
 		return err
 	}
@@ -197,16 +247,31 @@ func GenerateVerifyingMSP(baseDir string, signCA *ca.CA, tlsCA *ca.CA, nodeOUs b
 
 	factory.InitFactories(nil)
 	bcsp := factory.GetDefault()
-	priv, err := bcsp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: true})
-	ecPubKey, err := csp.GetECPublicKey(priv)
-	if err != nil {
-		return err
+
+	if gm.IsX509SM2Certificate(signCA.SignCert) {
+		priv, err := bcsp.KeyGen(&bccsp.GMSM2KeyGenOpts{Temporary: true})
+		sm2PubKey, err := csp.GetSM2PublicKey(priv)
+		if err != nil {
+			return err
+		}
+		_, err = signCA.SignGMCertificate(filepath.Join(baseDir, "admincerts"), signCA.Name,
+			nil, nil, sm2PubKey, x509GM.KeyUsageDigitalSignature, []x509GM.ExtKeyUsage{})
+		if err != nil {
+			return err
+		}
+	} else {
+		priv, err := bcsp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: true})
+		ecPubKey, err := csp.GetECPublicKey(priv)
+		if err != nil {
+			return err
+		}
+		_, err = signCA.SignCertificate(filepath.Join(baseDir, "admincerts"), signCA.Name,
+			nil, nil, ecPubKey, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
+		if err != nil {
+			return err
+		}
 	}
-	_, err = signCA.SignCertificate(filepath.Join(baseDir, "admincerts"), signCA.Name,
-		nil, nil, ecPubKey, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 

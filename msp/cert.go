@@ -24,9 +24,11 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
+	"github.com/hyperledger/fabric/bccsp/gm"
 	"math/big"
 	"time"
 
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/hyperledger/fabric/bccsp/utils"
 	"github.com/pkg/errors"
 )
@@ -67,6 +69,57 @@ func isECDSASignedCert(cert *x509.Certificate) bool {
 		cert.SignatureAlgorithm == x509.ECDSAWithSHA256 ||
 		cert.SignatureAlgorithm == x509.ECDSAWithSHA384 ||
 		cert.SignatureAlgorithm == x509.ECDSAWithSHA512
+}
+
+func isSM2WithSM3SignedCert(cert *x509.Certificate) bool {
+	return cert.SignatureAlgorithm == x509.SignatureAlgorithm(x509GM.SM2WithSM3)
+}
+
+func sanitizeSM2WithSM3SignedCert(cert *x509GM.Certificate, parentCert *x509GM.Certificate) (*x509.Certificate, error) {
+	if cert == nil {
+		return nil, errors.New("certificate must be different from nil")
+	}
+	if parentCert == nil {
+		return nil, errors.New("parent certificate must be different from nil")
+	}
+
+	expectedSig, err := gm.SignatureToLowS(parentCert.PublicKey.(*ecdsa.PublicKey), cert.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	// if sig == cert.Signature, nothing needs to be done
+	if bytes.Equal(cert.Signature, expectedSig) {
+		return gm.ParseSm2Certificate2X509(cert), nil
+	}
+	// otherwise create a new certificate with the new signature
+
+	// 1. Unmarshal cert.Raw to get an instance of certificate,
+	//    the lower level interface that represent an x509 certificate
+	//    encoding
+	var newCert certificate
+	newCert, err = certFromX509GMCert(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Change the signature
+	newCert.SignatureValue = asn1.BitString{Bytes: expectedSig, BitLength: len(expectedSig) * 8}
+
+	// 3. marshal again newCert. Raw must be nil
+	newCert.Raw = nil
+	newRaw, err := asn1.Marshal(newCert)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshalling of the certificate failed")
+	}
+
+	sm2Cert, err := x509GM.ParseCertificate(newRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. parse newRaw to get an x509 certificate
+	return gm.ParseSm2Certificate2X509(sm2Cert), nil
 }
 
 // sanitizeECDSASignedCert checks that the signatures signing a cert
@@ -116,6 +169,16 @@ func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificat
 }
 
 func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
+	var newCert certificate
+	_, err := asn1.Unmarshal(cert.Raw, &newCert)
+	if err != nil {
+		return certificate{}, errors.Wrap(err, "unmarshalling of the certificate failed")
+	}
+	return newCert, nil
+}
+
+
+func certFromX509GMCert(cert *x509GM.Certificate) (certificate, error) {
 	var newCert certificate
 	_, err := asn1.Unmarshal(cert.Raw, &newCert)
 	if err != nil {

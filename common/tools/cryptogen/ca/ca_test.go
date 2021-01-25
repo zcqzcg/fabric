@@ -6,16 +6,17 @@ SPDX-License-Identifier: Apache-2.0
 package ca_test
 
 import (
-	"crypto/ecdsa"
 	"crypto/x509"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/sm2"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"net"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/hyperledger/fabric/common/tools/cryptogen/ca"
 	"github.com/hyperledger/fabric/common/tools/cryptogen/csp"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -36,7 +37,7 @@ const (
 
 var testDir = filepath.Join(os.TempDir(), "ca-test")
 
-func TestLoadCertificateECDSA(t *testing.T) {
+func TestLoadCertificateGM(t *testing.T) {
 	caDir := filepath.Join(testDir, "ca")
 	certDir := filepath.Join(testDir, "certs")
 	// generate private key
@@ -44,7 +45,7 @@ func TestLoadCertificateECDSA(t *testing.T) {
 	assert.NoError(t, err, "Failed to generate signed certificate")
 
 	// get EC public key
-	ecPubKey, err := csp.GetECPublicKey(priv)
+	ecPubKey, err := csp.GetSM2PublicKey(priv)
 	assert.NoError(t, err, "Failed to generate signed certificate")
 	assert.NotNil(t, ecPubKey, "Failed to generate signed certificate")
 
@@ -57,11 +58,11 @@ func TestLoadCertificateECDSA(t *testing.T) {
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageAny})
 	assert.NoError(t, err, "Failed to generate signed certificate")
 	// KeyUsage should be x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
-	assert.Equal(t, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
+	assert.Equal(t, x509GM.KeyUsageDigitalSignature|x509GM.KeyUsageKeyEncipherment,
 		cert.KeyUsage)
-	assert.Contains(t, cert.ExtKeyUsage, x509.ExtKeyUsageAny)
+	assert.Contains(t, cert.ExtKeyUsage, x509GM.ExtKeyUsageAny)
 
-	loadedCert, err := ca.LoadCertificateECDSA(certDir)
+	loadedCert, err := ca.LoadCertificateGMSM2(certDir)
 	assert.NotNil(t, loadedCert, "Should load cert")
 	assert.Equal(t, cert.SerialNumber, loadedCert.SerialNumber, "Should have same serial number")
 	assert.Equal(t, cert.Subject.CommonName, loadedCert.Subject.CommonName, "Should have same CN")
@@ -74,28 +75,28 @@ func TestNewCA(t *testing.T) {
 	rootCA, err := ca.NewCA(caDir, testCAName, testCAName, testCountry, testProvince, testLocality, testOrganizationalUnit, testStreetAddress, testPostalCode)
 	assert.NoError(t, err, "Error generating CA")
 	assert.NotNil(t, rootCA, "Failed to return CA")
-	assert.NotNil(t, rootCA.Signer,
-		"rootCA.Signer should not be empty")
-	assert.IsType(t, &x509.Certificate{}, rootCA.SignCert,
-		"rootCA.SignCert should be type x509.Certificate")
+	assert.NotNil(t, rootCA.Sm2Key,
+		"rootCA.Sm2Key should not be empty")
+	assert.IsType(t, &x509GM.Certificate{}, rootCA.SignSm2Cert,
+		"rootCA.SignCert should be type x509GM.Certificate")
 
 	// check to make sure the root public key was stored
 	pemFile := filepath.Join(caDir, testCAName+"-cert.pem")
 	assert.Equal(t, true, checkForFile(pemFile),
 		"Expected to find file "+pemFile)
 
-	assert.NotEmpty(t, rootCA.SignCert.Subject.Country, "country cannot be empty.")
-	assert.Equal(t, testCountry, rootCA.SignCert.Subject.Country[0], "Failed to match country")
-	assert.NotEmpty(t, rootCA.SignCert.Subject.Province, "province cannot be empty.")
-	assert.Equal(t, testProvince, rootCA.SignCert.Subject.Province[0], "Failed to match province")
-	assert.NotEmpty(t, rootCA.SignCert.Subject.Locality, "locality cannot be empty.")
-	assert.Equal(t, testLocality, rootCA.SignCert.Subject.Locality[0], "Failed to match locality")
-	assert.NotEmpty(t, rootCA.SignCert.Subject.OrganizationalUnit, "organizationalUnit cannot be empty.")
-	assert.Equal(t, testOrganizationalUnit, rootCA.SignCert.Subject.OrganizationalUnit[0], "Failed to match organizationalUnit")
-	assert.NotEmpty(t, rootCA.SignCert.Subject.StreetAddress, "streetAddress cannot be empty.")
-	assert.Equal(t, testStreetAddress, rootCA.SignCert.Subject.StreetAddress[0], "Failed to match streetAddress")
-	assert.NotEmpty(t, rootCA.SignCert.Subject.PostalCode, "postalCode cannot be empty.")
-	assert.Equal(t, testPostalCode, rootCA.SignCert.Subject.PostalCode[0], "Failed to match postalCode")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.Country, "country cannot be empty.")
+	assert.Equal(t, testCountry, rootCA.SignSm2Cert.Subject.Country[0], "Failed to match country")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.Province, "province cannot be empty.")
+	assert.Equal(t, testProvince, rootCA.SignSm2Cert.Subject.Province[0], "Failed to match province")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.Locality, "locality cannot be empty.")
+	assert.Equal(t, testLocality, rootCA.SignSm2Cert.Subject.Locality[0], "Failed to match locality")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.OrganizationalUnit, "organizationalUnit cannot be empty.")
+	assert.Equal(t, testOrganizationalUnit, rootCA.SignSm2Cert.Subject.OrganizationalUnit[0], "Failed to match organizationalUnit")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.StreetAddress, "streetAddress cannot be empty.")
+	assert.Equal(t, testStreetAddress, rootCA.SignSm2Cert.Subject.StreetAddress[0], "Failed to match streetAddress")
+	assert.NotEmpty(t, rootCA.SignSm2Cert.Subject.PostalCode, "postalCode cannot be empty.")
+	assert.Equal(t, testPostalCode, rootCA.SignSm2Cert.Subject.PostalCode[0], "Failed to match postalCode")
 
 	cleanup(testDir)
 
@@ -110,7 +111,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 	assert.NoError(t, err, "Failed to generate signed certificate")
 
 	// get EC public key
-	ecPubKey, err := csp.GetECPublicKey(priv)
+	ecPubKey, err := csp.GetSM2PublicKey(priv)
 	assert.NoError(t, err, "Failed to generate signed certificate")
 	assert.NotNil(t, ecPubKey, "Failed to generate signed certificate")
 
@@ -121,11 +122,17 @@ func TestGenerateSignCertificate(t *testing.T) {
 	cert, err := rootCA.SignCertificate(certDir, testName, nil, nil, ecPubKey,
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageAny})
-	assert.NoError(t, err, "Failed to generate signed certificate")
+
+	rootCert := rootCA.SignSm2Cert
+
+	err = cert.CheckSignatureFrom(rootCert)
+	assert.NoError(t, err, "Failed to check signed certificate")
+
+	//assert.NoError(t, err, "Failed to generate signed certificate")
 	// KeyUsage should be x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
-	assert.Equal(t, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
+	assert.Equal(t, x509GM.KeyUsage(x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment),
 		cert.KeyUsage)
-	assert.Contains(t, cert.ExtKeyUsage, x509.ExtKeyUsageAny)
+	assert.Contains(t, cert.ExtKeyUsage, x509GM.ExtKeyUsageAny)
 
 	cert, err = rootCA.SignCertificate(certDir, testName, nil, nil, ecPubKey,
 		x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
@@ -160,7 +167,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 		Name:     "badCA",
 		SignCert: &x509.Certificate{},
 	}
-	_, err = badCA.SignCertificate(certDir, testName, nil, nil, &ecdsa.PublicKey{},
+	_, err = badCA.SignCertificate(certDir, testName, nil, nil, &sm2.PublicKey{},
 		x509.KeyUsageKeyEncipherment, []x509.ExtKeyUsage{x509.ExtKeyUsageAny})
 	assert.Error(t, err, "Empty CA should not be able to sign")
 	cleanup(testDir)

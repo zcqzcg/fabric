@@ -3,9 +3,9 @@ package mock
 
 import (
 	"context"
-	"crypto/tls"
 	"sync"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"github.com/hyperledger/fabric/token/client"
 	"google.golang.org/grpc"
 )

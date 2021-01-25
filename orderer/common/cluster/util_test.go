@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -143,7 +144,7 @@ func TestDialerBadConfig(t *testing.T) {
 			},
 		},
 	}
-	_, err := dialer.Dial("127.0.0.1:8080", func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	_, err := dialer.Dial("127.0.0.1:8080", func(rawCerts [][]byte, verifiedChains [][]*x509GM.Certificate) error {
 		return nil
 	})
 	assert.EqualError(t, err, "error adding root certificate: asn1: syntax error: sequence truncated")

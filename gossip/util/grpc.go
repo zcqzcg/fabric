@@ -7,19 +7,19 @@ SPDX-License-Identifier: Apache-2.0
 package util
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/hyperledger/fabric/common/crypto/tlsgen"
 	"github.com/hyperledger/fabric/core/comm"
 	"github.com/hyperledger/fabric/gossip/api"
 	"github.com/hyperledger/fabric/gossip/common"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // CA that generates TLS key-pairs
@@ -56,14 +56,16 @@ func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLS
 	}
 
 	tlsConf := &tls.Config{
+		//TODO: matrix
+		GMSupport:    &tls.GMSupport{},
 		Certificates: []tls.Certificate{tlsClientCert},
 		ClientAuth:   tls.RequestClientCert,
-		RootCAs:      x509.NewCertPool(),
+		RootCAs:      x509GM.NewCertPool(),
 	}
 
 	tlsConf.RootCAs.AppendCertsFromPEM(ca.CertBytes())
 
-	ta := credentials.NewTLS(tlsConf)
+	ta := gmcredentials.NewTLS(tlsConf)
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(ta))
 
 	secureDialOpts = func() []grpc.DialOption {

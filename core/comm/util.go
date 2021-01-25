@@ -10,17 +10,17 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/pem"
 
+	credentials "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
 
 // AddPemToCertPool adds PEM-encoded certs to a cert pool
-func AddPemToCertPool(pemCerts []byte, pool *x509.CertPool) error {
+func AddPemToCertPool(pemCerts []byte, pool *x509GM.CertPool) error {
 	certs, _, err := pemToX509Certs(pemCerts)
 	if err != nil {
 		return err
@@ -32,10 +32,10 @@ func AddPemToCertPool(pemCerts []byte, pool *x509.CertPool) error {
 }
 
 //utility function to parse PEM-encoded certs
-func pemToX509Certs(pemCerts []byte) ([]*x509.Certificate, []string, error) {
+func pemToX509Certs(pemCerts []byte) ([]*x509GM.Certificate, []string, error) {
 
 	//it's possible that multiple certs are encoded
-	certs := []*x509.Certificate{}
+	certs := []*x509GM.Certificate{}
 	subjects := []string{}
 	for len(pemCerts) > 0 {
 		var block *pem.Block
@@ -49,7 +49,7 @@ func pemToX509Certs(pemCerts []byte) ([]*x509.Certificate, []string, error) {
 		}
 		*/
 
-		cert, err := x509.ParseCertificate(block.Bytes)
+		cert, err := x509GM.ParseCertificate(block.Bytes)
 		if err != nil {
 			return nil, subjects, err
 		} else {
@@ -126,7 +126,7 @@ func ExtractCertificateHashFromContext(ctx context.Context) []byte {
 
 // ExtractCertificateFromContext returns the TLS certificate (if applicable)
 // from the given context of a gRPC stream
-func ExtractCertificateFromContext(ctx context.Context) *x509.Certificate {
+func ExtractCertificateFromContext(ctx context.Context) *x509GM.Certificate {
 	pr, extracted := peer.FromContext(ctx)
 	if !extracted {
 		return nil

@@ -8,14 +8,14 @@ package cluster
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/hyperledger/fabric/common/channelconfig"
 	"github.com/hyperledger/fabric/common/configtx"
 	"github.com/hyperledger/fabric/common/flogging"
@@ -138,6 +138,14 @@ func (dialer *PredicateDialer) Dial(address string, verifyFunc RemoteVerifier) (
 		dialer.lock.RUnlock()
 
 		tlsConfig.RootCAs = x509.NewCertPool()
+		if len(serverRootCAs) > 0 {
+			cert, err := x509.ParseCertificate(serverRootCAs[0])
+			if err == nil {
+				if cert.PublicKeyAlgorithm == x509.SM2 {
+					tlsConfig.GMSupport = &tls.GMSupport{}
+				}
+			}
+		}
 		for _, pem := range serverRootCAs {
 			tlsConfig.RootCAs.AppendCertsFromPEM(pem)
 		}

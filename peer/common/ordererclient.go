@@ -7,9 +7,9 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"github.com/hyperledger/fabric/core/comm"
 	ab "github.com/hyperledger/fabric/protos/orderer"
 	"github.com/pkg/errors"

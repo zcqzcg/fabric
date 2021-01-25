@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package comm_test
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"io/ioutil"
 	"net"
 	"path/filepath"
@@ -27,7 +27,7 @@ func TestCreds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read root certificate: %v", err)
 	}
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	ok := certPool.AppendCertsFromPEM(caPEM)
 	if !ok {
 		t.Fatalf("failed to create certPool")
@@ -113,7 +113,7 @@ func TestConfig(t *testing.T) {
 
 	configCopy := config.Config()
 
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	config.SetClientCAs(certPool)
 
 	assert.NotEqual(t, config.Config(), &configCopy, "TLSConfig should have new certs")
@@ -127,11 +127,11 @@ func TestAddRootCA(t *testing.T) {
 		t.Fatalf("failed to read root certificate: %v", err)
 	}
 
-	cert := &x509.Certificate{
+	cert := &x509GM.Certificate{
 		EmailAddresses: []string{"test@foobar.com"},
 	}
 
-	expectedCertPool := x509.NewCertPool()
+	expectedCertPool := x509GM.NewCertPool()
 	ok := expectedCertPool.AppendCertsFromPEM(caPEM)
 	if !ok {
 		t.Fatalf("failed to create expected certPool")
@@ -139,7 +139,7 @@ func TestAddRootCA(t *testing.T) {
 
 	expectedCertPool.AddCert(cert)
 
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	ok = certPool.AppendCertsFromPEM(caPEM)
 	if !ok {
 		t.Fatalf("failed to create certPool")
@@ -166,7 +166,7 @@ func TestSetClientCAs(t *testing.T) {
 
 	assert.Empty(t, config.Config().ClientCAs, "No CertPool should be defined")
 
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	config.SetClientCAs(certPool)
 
 	assert.NotNil(t, config.Config().ClientCAs, "The CertPools' should not be the same")

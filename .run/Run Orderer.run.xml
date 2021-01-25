@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run Orderer" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="fabric" />
+    <working_directory value="$PROJECT_DIR$/orderer" />
+    <parameters value="start" />
+    <EXTENSION ID="net.ashald.envfile">
+      <option name="IS_ENABLED" value="true" />
+      <option name="IS_SUBST" value="false" />
+      <option name="IS_PATH_MACRO_SUPPORTED" value="true" />
+      <option name="IS_IGNORE_MISSING_FILES" value="false" />
+      <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+      <ENTRIES>
+        <ENTRY IS_ENABLED="true" PARSER="runconfig" />
+        <ENTRY IS_ENABLED="true" PARSER="env" PATH="docker.env" />
+      </ENTRIES>
+    </EXTENSION>
+    <kind value="PACKAGE" />
+    <filePath value="$PROJECT_DIR$/orderer/main.go" />
+    <package value="github.com/tw-bc-group/fabric-gm/orderer" />
+    <directory value="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>

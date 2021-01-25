@@ -8,12 +8,13 @@ package comm
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"net"
 	"sync"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/hyperledger/fabric/common/flogging"
 	"google.golang.org/grpc/credentials"
 )
@@ -42,8 +43,9 @@ func NewServerTransportCredentials(
 	// clone the tls.Config which allows us to update it dynamically
 	serverConfig.config.NextProtos = alpnProtoStr
 	// override TLS version and ensure it is 1.2
-	serverConfig.config.MinVersion = tls.VersionTLS12
+	serverConfig.config.MinVersion = tls.VersionGMSSL
 	serverConfig.config.MaxVersion = tls.VersionTLS12
+
 	return &serverCreds{
 		serverConfig: serverConfig,
 		logger:       logger}
@@ -109,7 +111,7 @@ func (sc *serverCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.
 		}
 		return nil, nil, err
 	}
-	return conn, credentials.TLSInfo{State: conn.ConnectionState()}, nil
+	return conn, gmcredentials.TLSInfo{State: conn.ConnectionState()}, nil
 }
 
 // Info provides the ProtocolInfo of this TransportCredentials.
@@ -148,7 +150,7 @@ func (dtc *DynamicClientCredentials) latestConfig() *tls.Config {
 }
 
 func (dtc *DynamicClientCredentials) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
-	return credentials.NewTLS(dtc.latestConfig()).ClientHandshake(ctx, authority, rawConn)
+	return gmcredentials.NewTLS(dtc.latestConfig()).ClientHandshake(ctx, authority, rawConn)
 }
 
 func (dtc *DynamicClientCredentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
@@ -156,11 +158,11 @@ func (dtc *DynamicClientCredentials) ServerHandshake(rawConn net.Conn) (net.Conn
 }
 
 func (dtc *DynamicClientCredentials) Info() credentials.ProtocolInfo {
-	return credentials.NewTLS(dtc.latestConfig()).Info()
+	return gmcredentials.NewTLS(dtc.latestConfig()).Info()
 }
 
 func (dtc *DynamicClientCredentials) Clone() credentials.TransportCredentials {
-	return credentials.NewTLS(dtc.latestConfig())
+	return gmcredentials.NewTLS(dtc.latestConfig())
 }
 
 func (dtc *DynamicClientCredentials) OverrideServerName(name string) error {

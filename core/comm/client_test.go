@@ -9,9 +9,9 @@ package comm_test
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	x509 "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"io/ioutil"
 	"net"
 	"path/filepath"
@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials"
 )
 
 const testTimeout = 1 * time.Second // conservative

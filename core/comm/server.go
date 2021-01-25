@@ -7,16 +7,17 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/hyperledger/fabric/bccsp/gm"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/x509"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 )
 
@@ -87,14 +88,22 @@ func NewGRPCServerFromListener(listener net.Listener, serverConfig ServerConfig)
 			if len(secureConfig.CipherSuites) == 0 {
 				secureConfig.CipherSuites = DefaultTLSCipherSuites
 			}
-			getCert := func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				cert := grpcServer.serverCertificate.Load().(tls.Certificate)
-				return &cert, nil
+
+			var gmSupport *tls.GMSupport
+			var certificates []tls.Certificate
+
+			certificates = append(certificates, cert)
+
+			if gm.IsPureGMTLSCertificate(&cert) {
+				gmSupport = &tls.GMSupport{}
+				certificates = append(certificates, cert)
 			}
+
 			//base server certificate
 			grpcServer.tls = NewTLSConfig(&tls.Config{
+				GMSupport:              gmSupport,
 				VerifyPeerCertificate:  secureConfig.VerifyCertificate,
-				GetCertificate:         getCert,
+				Certificates:           certificates,
 				SessionTicketsDisabled: true,
 				CipherSuites:           secureConfig.CipherSuites,
 			})

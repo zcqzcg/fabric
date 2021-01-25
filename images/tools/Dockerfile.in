@@ -12,6 +12,8 @@ RUN make configtxgen configtxlator cryptogen peer discover idemixgen
 
 FROM _BASE_NS_/fabric-baseimage:_BASE_TAG_
 ENV FABRIC_CFG_PATH /etc/hyperledger/fabric
+#use aliyun source
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
 RUN apt-get update && apt-get install -y jq
 VOLUME /etc/hyperledger/fabric
 COPY --from=builder /opt/gopath/src/github.com/hyperledger/fabric/.build/bin /usr/local/bin

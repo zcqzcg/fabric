@@ -8,9 +8,10 @@ package comm
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"io/ioutil"
 	"net"
 	"path/filepath"
@@ -54,7 +55,7 @@ func TestClientConnections(t *testing.T) {
 	certPEMBlock, _ := ioutil.ReadFile(filepath.Join("testdata", "certs", fileBase+"-server1-cert.pem"))
 	keyPEMBlock, _ := ioutil.ReadFile(filepath.Join("testdata", "certs", fileBase+"-server1-key.pem"))
 	caPEMBlock, _ := ioutil.ReadFile(filepath.Join("testdata", "certs", fileBase+"-cert.pem"))
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	certPool.AppendCertsFromPEM(caPEMBlock)
 
 	var tests = []struct {
@@ -85,7 +86,7 @@ func TestClientConnections(t *testing.T) {
 					UseTLS:      true,
 					Certificate: certPEMBlock,
 					Key:         keyPEMBlock}},
-			creds: credentials.NewClientTLSFromCert(certPool, ""),
+			creds: gmcredentials.NewClientTLSFromCert(certPool, ""),
 		},
 		{
 			name: "InvalidConnectionTLS",

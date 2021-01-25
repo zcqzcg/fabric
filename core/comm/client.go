@@ -8,10 +8,11 @@ package comm
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
+
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -76,10 +77,19 @@ func (client *GRPCClient) parseSecureOptions(opts *SecureOptions) error {
 	}
 	client.tlsConfig = &tls.Config{
 		VerifyPeerCertificate: opts.VerifyCertificate,
-		MinVersion:            tls.VersionTLS12} // TLS 1.2 only
+		MinVersion:            tls.VersionGMSSL} // TLS 1.2 only
+
 	if len(opts.ServerRootCAs) > 0 {
-		client.tlsConfig.RootCAs = x509.NewCertPool()
-		for _, certBytes := range opts.ServerRootCAs {
+		client.tlsConfig.RootCAs = x509GM.NewCertPool()
+		for index, certBytes := range opts.ServerRootCAs {
+			if index == 0 {
+				cert, err := x509GM.ReadCertificateFromPem(certBytes)
+				if err == nil {
+					if cert.SignatureAlgorithm == x509GM.SM2WithSM3 {
+						client.tlsConfig.GMSupport = &tls.GMSupport{}
+					}
+				}
+			}
 			err := AddPemToCertPool(certBytes, client.tlsConfig.RootCAs)
 			if err != nil {
 				commLogger.Debugf("error adding root certificate: %v", err)
@@ -94,10 +104,12 @@ func (client *GRPCClient) parseSecureOptions(opts *SecureOptions) error {
 			opts.Certificate != nil {
 			cert, err := tls.X509KeyPair(opts.Certificate,
 				opts.Key)
+
 			if err != nil {
 				return errors.WithMessage(err, "failed to "+
 					"load client certificate")
 			}
+
 			client.tlsConfig.Certificates = append(
 				client.tlsConfig.Certificates, cert)
 		} else {
@@ -154,7 +166,7 @@ func (client *GRPCClient) SetServerRootCAs(serverRoots [][]byte) error {
 
 	// NOTE: if no serverRoots are specified, the current cert pool will be
 	// replaced with an empty one
-	certPool := x509.NewCertPool()
+	certPool := x509GM.NewCertPool()
 	for _, root := range serverRoots {
 		err := AddPemToCertPool(root, certPool)
 		if err != nil {

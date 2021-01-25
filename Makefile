@@ -47,7 +47,7 @@
 BASE_VERSION = 1.4.9
 PREV_VERSION = 1.4.8
 CHAINTOOL_RELEASE=1.1.3
-BASEIMAGE_RELEASE=0.4.21
+BASEIMAGE_RELEASE=0.4.22
 
 # Allow to build as a submodule setting the main project to
 # the PROJECT_NAME env variable, for example,
@@ -94,11 +94,12 @@ PROTOS = $(shell git ls-files *.proto | grep -Ev 'vendor/|testdata/')
 # No sense rebuilding when non production code is changed
 PROJECT_FILES = $(shell git ls-files  | grep -v ^test | grep -v ^unit-test | \
 	grep -v ^.git | grep -v ^examples | grep -v ^devenv | grep -v .png$ | \
-	grep -v ^LICENSE | grep -v ^vendor )
+	grep -v ^.run | grep -v ^LICENSE | grep -v ^vendor )
 RELEASE_TEMPLATES = $(shell git ls-files | grep "release/templates")
 IMAGES = peer orderer ccenv buildenv tools
 RELEASE_PLATFORMS = windows-amd64 darwin-amd64 linux-amd64 linux-s390x linux-ppc64le
 RELEASE_PKGS = configtxgen cryptogen idemixgen discover configtxlator peer orderer
+GOMODE_DUMMY = $(shell md5sum go.mod | cut -d' ' -f1)
 
 pkgmap.cryptogen      := $(PKGNAME)/common/tools/cryptogen
 pkgmap.idemixgen      := $(PKGNAME)/common/tools/idemixgen
@@ -200,9 +201,9 @@ profile: unit-test
 test-cmd:
 	@echo "go test -tags \"$(GO_TAGS)\""
 
-docker: $(patsubst %,$(BUILD_DIR)/image/%/$(DUMMY), $(IMAGES))
+docker: vendor-clean $(patsubst %,$(BUILD_DIR)/image/%/$(DUMMY), $(IMAGES))
 
-native: peer orderer configtxgen cryptogen idemixgen configtxlator discover
+native: vendor-clean peer orderer configtxgen cryptogen idemixgen configtxlator discover
 
 linter: check-deps buildenv
 	@echo "LINT: Running code checks.."
@@ -258,7 +259,8 @@ $(BUILD_DIR)/docker/gotools: gotools.mk
 		-v $(abspath $(BUILD_DIR)/docker/gocache):/opt/gopath/cache \
 		-e GOCACHE=/opt/gopath/cache \
 		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		make -f gotools.mk GOTOOLS_BINDIR=/opt/gotools/bin GOTOOLS_GOPATH=/opt/gotools/obj
+		make -f gotools.mk GOTOOLS_BINDIR=/opt/gotools/bin GOTOOLS_GOPATH=/opt/gotools/obj \
+		|| rm -rf $@
 
 $(BUILD_DIR)/bin/%: $(PROJECT_FILES)
 	@mkdir -p $(@D)
@@ -320,7 +322,8 @@ $(BUILD_DIR)/image/%/$(DUMMY): Makefile $(BUILD_DIR)/image/%/payload $(BUILD_DIR
 $(BUILD_DIR)/gotools.tar.bz2: $(BUILD_DIR)/docker/gotools
 	(cd $</bin && tar -jc *) > $@
 
-$(BUILD_DIR)/goshim.tar.bz2: $(GOSHIM_DEPS)
+
+$(BUILD_DIR)/goshim.tar.bz2: vendor $(GOSHIM_DEPS)
 	@echo "Creating $@"
 	@tar -jhc -C $(GOPATH)/src $(patsubst $(GOPATH)/src/%,%,$(GOSHIM_DEPS)) > $@
 
@@ -398,6 +401,16 @@ release/%/bin/peer: $(PROJECT_FILES)
 	mkdir -p $(@D)
 	$(CGO_FLAGS) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(abspath $@) -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(pkgmap.$(@F))
 
+vendor: vendor/.$(GOMODE_DUMMY)
+
+vendor/.$(GOMODE_DUMMY):
+	@rm -rf vendor
+	go mod vendor && touch vendor/.$(GOMODE_DUMMY)
+
+.PHONY: vendor-clean
+vendor-clean:
+	@rm -rf vendor
+
 .PHONY: dist
 dist: dist-clean dist/$(MARCH)
 
@@ -421,7 +434,7 @@ docker-list: $(patsubst %,%-docker-list, $(IMAGES))
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
 	-docker images --quiet --filter=reference='$(DOCKER_NS)/fabric-$(TARGET):$(ARCH)-$(BASE_VERSION)$(if $(EXTRA_VERSION),-snapshot-*,)' | xargs docker rmi -f
-	-@rm -rf $(BUILD_DIR)/image/$(TARGET) ||:
+	-@rm -rf $(BUILD_DIR)/image/$(TARGET) vendor ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES))
 
@@ -439,6 +452,7 @@ docker-tag-stable: $(IMAGES:%=%-docker-tag-stable)
 
 .PHONY: clean
 clean: docker-clean unit-test-clean release-clean
+	-@chmod -R +w $(BUILD_DIR)
 	-@rm -rf $(BUILD_DIR)
 
 .PHONY: clean-all
@@ -463,3 +477,10 @@ release-clean: $(patsubst %,%-release-clean, $(RELEASE_PLATFORMS))
 .PHONY: unit-test-clean
 unit-test-clean:
 	cd unit-test && docker-compose down
+
+show-go-tag:
+	@TZ=UTC git --no-pager show \
+			   --quiet \
+			   --abbrev=12 \
+			   --date='format-local:%Y%m%d%H%M%S' \
+			   --format="%cd-%h"

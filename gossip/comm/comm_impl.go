@@ -9,7 +9,6 @@ package comm
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"reflect"
@@ -17,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	tls "github.com/Hyperledger-TWGC/tjfoc-gm/gmtls"
 	"github.com/hyperledger/fabric/gossip/api"
 	"github.com/hyperledger/fabric/gossip/common"
 	"github.com/hyperledger/fabric/gossip/identity"

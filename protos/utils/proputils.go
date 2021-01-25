@@ -580,6 +580,9 @@ func ComputeTxID(nonce, creator []byte) (string, error) {
 	// channel configuration
 	digest, err := factory.GetDefault().Hash(
 		append(nonce, creator...),
+		// TODO: matrix
+		// 这里只是计算 TxID，并没必要换成 GMSM3
+		// &bccsp.GMSM3Opts{})
 		&bccsp.SHA256Opts{})
 	if err != nil {
 		return "", err

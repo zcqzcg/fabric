@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -138,7 +139,7 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, keystoreDir stri
 		bccspConfig = factory.GetDefaultOpts()
 	}
 
-	if bccspConfig.ProviderName == "SW" {
+	if bccspConfig.ProviderName == "SW" || bccspConfig.ProviderName == "GM" {
 		if bccspConfig.SwOpts == nil {
 			bccspConfig.SwOpts = factory.GetDefaultOpts().SwOpts
 		}
@@ -335,10 +336,24 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 		mspLogger.Debugf("MSP configuration file not found at [%s]: [%s]", configFile, err)
 	}
 
+	//TODO: matrix
+	// 无法根据上下文确定是否国密
 	// Set FabricCryptoConfig
 	cryptoConfig := &msp.FabricCryptoConfig{
 		SignatureHashFamily:            bccsp.SHA2,
 		IdentityIdentifierHashFunction: bccsp.SHA256,
+	}
+
+	if len(cacerts) > 0 {
+		cert, err := x509GM.ReadCertificateFromPem(cacerts[0])
+		if err == nil {
+			if cert.SignatureAlgorithm == x509GM.SM2WithSM3 {
+				cryptoConfig = &msp.FabricCryptoConfig{
+					SignatureHashFamily:            bccsp.GMSM3,
+					IdentityIdentifierHashFunction: bccsp.GMSM3,
+				}
+			}
+		}
 	}
 
 	// Compose FabricMSPConfig

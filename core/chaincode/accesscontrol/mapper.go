@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Hyperledger-TWGC/tjfoc-gm/gmtls/gmcredentials"
 	"github.com/hyperledger/fabric/common/crypto/tlsgen"
 	"github.com/hyperledger/fabric/common/util"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
 
@@ -79,7 +79,7 @@ func extractCertificateHashFromContext(ctx context.Context) []byte {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+	tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
 	if !isTLSConn {
 		return nil
 	}
