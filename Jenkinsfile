@@ -15,7 +15,7 @@ void setBuildStatus(String message, String state) {
   ]);
 }
 
-def projectName = "tw-bc-group/fabric-gm"
+def projectName = "hyperledger/fabric"
 
 pipeline {
     agent any
