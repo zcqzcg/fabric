@@ -15,11 +15,25 @@
 ### 本项目的优势
 本项目涵盖 Fabric、Fabric CA 以及 Fabric SDK 的全链路国密改造，主要包括以下功能点：
 * 国密 CA 生成和签发
+
 * 应用数据国密加密/签名/解密
+
 * 国密 TLS 的 GRPCS 和 HTTPS 通讯
-* 国密加密机/协同运算集成
+
+* 国密密码机的集成（阿里云 KMS 服务）
+
+* 代码修改使用非侵入式的修改，与 Fabric 官方仓库合并更容易
+
+* 支持 Jenkins CI
+
+  
+
+⚠️ 注意
+
+​	cryptogen 默认生成非国密的 endsa 签名的证书，如果需要生成国密证书，需要加上 --gm 参数，比如 cryptogen generate --gm
 
 ### 什么是Hyperledger Fabric？
+
 Hyperledger Fabric是用于开发解决方案和应用程序的企业级许可分布式分类账本框架，可以去[官网](https://www.hyperledger.org/use/fabric)了解更多。
 
 ### 什么是国密(GM)？
