@@ -30,14 +30,30 @@
 
 ⚠️ 注意
 
-​	cryptogen 默认生成非国密的 endsa 签名的证书，如果需要生成国密证书，需要加上 --gm 参数，比如 cryptogen generate --gm
+- ​	cryptogen 默认生成非国密的 ecdsa 签名的证书，如果需要生成国密证书，需要加上 --gm 参数，比如
+
+   	`cryptogen generate --gm`
+
+  
+
+- ​	交易 ID 的计算还是原版的 SHA256，并未改为 GMSM3
+
+  ​	对应 fabric 具体的位置在 ComputeTxID 函数中
+
+  ​	对应 go-sdk 具体的位置在 NewHeader 函数中	
+
+  
 
 ### 什么是Hyperledger Fabric？
 
 Hyperledger Fabric是用于开发解决方案和应用程序的企业级许可分布式分类账本框架，可以去[官网](https://www.hyperledger.org/use/fabric)了解更多。
 
+
+
 ### 什么是国密(GM)？
 国密(GM)算法是[国家密码管理局](https://www.oscca.gov.cn/)发布的、符合[《密码法》](http://www.npc.gov.cn/npc/c30834/201910/6f7be7dd5ae5459a8de8baf36296bc74.shtml)中规定的商用密码的一套密码标准规范。
+
+
 
 ## 依赖与关联
 
@@ -48,28 +64,46 @@ Hyperledger Fabric是用于开发解决方案和应用程序的企业级许可�
 ### 关联代码库
 本代码库为Fabric Core的国密化版本，Fabric的其他部分国密化改造如下：
 * [国密化CA](https://github.com/tw-bc-group/fabric-ca)
+
 * [国密化Samples](https://github.com/tw-bc-group/fabric-samples)
+
 * [国密化SDK](https://github.com/tw-bc-group/fabric-sdk-go)
+
+  
 
 ## 如何使用
 与官方Fabric 1.4一致，参考[Fabric官方文档](https://wiki.hyperledger.org/display/fabric)。
 
+
+
 ### 常用命令
 * `make native`进行编译
+
 * `make docker`打包docker镜像
 
+  
+
 ### 欢迎反馈
-欢迎各种反馈～ 你可以在[issues页面](https://github.com/tw-bc-group/fabric/issues)提交反馈，我们收到后会尽快处理。
+欢迎各种反馈～ 你可以在[issues页面](https://github.com/tw-bc-group/fabric/issues)提交反馈，我们收到后会尽快处理
+
+
 
 ### 如何贡献
 欢迎通过以下方式贡献本项目：
 
 * 提带有label的issue
+
 * 提出任何期望的功能、改进
+
 * 提交bug
+
 * 修复bug
+
 * 参与讨论并帮助决策
+
 * 提交Pull Request
+
+  
 
 ## 关于我们
 国密化改造工作主要由ThoughtWorks完成，想要了解更多/商业合作/联系我们，欢迎访问我们的[官网](https://blockchain.thoughtworks.cn/)。
