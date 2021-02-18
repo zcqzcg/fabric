@@ -3,7 +3,7 @@
   Hyperledger Fabric 国密版
   <br>
   <p align="center">
-    <a herf="https://ci.blockchain.thoughtworks.cn/blue/organizations/jenkins/fabric-gm%2Ffabric-core/activity">
+    <a herf="https://ci.blockchain.thoughtworks.cn/blue/organizations/jenkins/fabric-gm%2Ffabric-core/activity/">
       <img src="https://ci.blockchain.thoughtworks.cn/buildStatus/icon?job=fabric-gm%2Ffabric-core" alt="Build Status">
     </a>
     <img src="https://img.shields.io/badge/contributions-welcome-orange.svg" alt="Contributions welcome">
@@ -86,12 +86,12 @@ Hyperledger Fabric是用于开发解决方案和应用程序的企业级许可�
 
 ### 使用镜像
 
-本项目使用[CI](https://ci.blockchain.thoughtworks.cn/blue/organizations/jenkins/fabric-gm%2Ffabric-core/activity)持续编译并测试，并将镜像发表在dockerhub，可使用镜像：
+本项目使用[CI](https://ci.blockchain.thoughtworks.cn/blue/organizations/jenkins/fabric-gm%2Ffabric-core/activity/)持续编译并测试，并将镜像发表在dockerhub，可使用镜像：
 
-* [twblockchain/fabric-peer](https://hub.docker.com/repository/docker/twblockchain/fabric-peer)
-* [twblockchain/fabric-orderer](https://hub.docker.com/repository/docker/twblockchain/fabric-orderer)
-* [twblockchain/fabric-tools](https://hub.docker.com/repository/docker/twblockchain/fabric-tools)
-* [twblockchain/fabric-ccenv](https://hub.docker.com/repository/docker/twblockchain/fabric-ccenv)
+* [twblockchain/fabric-peer](https://hub.docker.com/r/twblockchain/fabric-peer)
+* [twblockchain/fabric-orderer](https://hub.docker.com/r/twblockchain/fabric-orderer)
+* [twblockchain/fabric-tools](https://hub.docker.com/r/twblockchain/fabric-tools)
+* [twblockchain/fabric-ccenv](https://hub.docker.com/r/twblockchain/fabric-ccenv)
 
 
 ### 欢迎反馈
