@@ -4,14 +4,12 @@ go 1.14
 
 require (
 	code.cloudfoundry.org/clock v1.0.0
-	github.com/AlekSi/gocov-xml v0.0.0-20190121064608-3a14fb1c4737 // indirect
 	github.com/Hyperledger-TWGC/tjfoc-gm v0.0.0-20210222084201-e65875425ad3
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/Shopify/sarama v1.26.1
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
-	github.com/axw/gocov v1.0.0 // indirect
 	github.com/containerd/continuity v0.0.0-20181003075958-be9bd761db19 // indirect
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -36,7 +34,6 @@ require (
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0 // indirect
 	github.com/miekg/pkcs11 v0.0.0-20181002074154-c6d6ee821fb1
 	github.com/mitchellh/mapstructure v1.1.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -60,7 +57,6 @@ require (
 	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tw-bc-group/aliyun-kms v0.0.0-20201126132256-b9c99bba772d
-	github.com/vektra/mockery v1.1.2 // indirect
 	github.com/willf/bitset v1.1.9
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20181228115726-23731bf9ba55
 	go.uber.org/zap v1.12.0
@@ -73,4 +69,9 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.25
 	gopkg.in/yaml.v2 v2.3.0
+)
+
+replace (
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.0.0
+	github.com/golang/protobuf => github.com/golang/protobuf v1.3.3
 )

@@ -9,9 +9,9 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	x509GM "github.com/Hyperledger-TWGC/tjfoc-gm/x509"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -320,7 +320,7 @@ func (c *Comm) updateStubInMapping(channel string, mapping MemberMapping, node R
 // a stub atomically.
 func (c *Comm) createRemoteContext(stub *Stub, channel string) func() (*RemoteContext, error) {
 	return func() (*RemoteContext, error) {
-		cert, err := x509.ParseCertificate(stub.ServerTLSCert)
+		cert, err := x509GM.ParseCertificate(stub.ServerTLSCert)
 		if err != nil {
 			pemString := string(pem.EncodeToMemory(&pem.Block{Bytes: stub.ServerTLSCert}))
 			c.Logger.Errorf("Invalid DER for channel %s, endpoint %s, ID %d: %v", channel, stub.Endpoint, stub.ID, pemString)
